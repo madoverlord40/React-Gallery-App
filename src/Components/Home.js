@@ -7,11 +7,13 @@ import {
 
 class Home extends Component {
     
+  //basic stateful component, so we know if the user entered in something from the search box
   state = {
       searchString: "",
       bIsSearching: false
   }
 
+  //handle the form submit and and update the state that we are starting a search
   handleSubmit = (e) => {    
       e.preventDefault();
       
@@ -25,7 +27,7 @@ class Home extends Component {
 
     
   render() {
-
+    //if we are starting a search, clear the state, and redirect to the search component, to perform the search and display the resutls.
     if(this.state.bIsSearching) {
         let search = this.state.searchString;
 
