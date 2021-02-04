@@ -6,11 +6,11 @@ class Photo extends Component {
   render() {
       return (
       <div className="photo-container">
-        <h2>Results</h2>
+        <h2> Results for {this.props.searchedFor} </h2>
         <ul>
-          { this.props.searchResults.map(result => { 
+          { this.props.searchResults.map((result, index) => { 
               return (
-                <li className="photo-container">
+                <li key={index} className="photo-container">
                     <img src={result} alt="" />
                 </li>
               );
