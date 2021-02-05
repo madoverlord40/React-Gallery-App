@@ -10,7 +10,7 @@ import {
 
 import './App.css';
 import Home from './Components/Home';
-import NotFound from './Components/NotFound';
+import Error404 from './Components/Error404';
 
 
 class App extends Component {
@@ -22,7 +22,7 @@ class App extends Component {
           <Route exact path="/" render={(props) => { return (<Redirect  to="/Search/" />); }} />
           <Route exact path="/Search" component={Home} />
           <Route path="/Search/:topic" component={Home} />
-          <Route component={NotFound} />
+          <Route component={Error404} />
         </Switch>
       </BrowserRouter>
     );
