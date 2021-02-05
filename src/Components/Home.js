@@ -1,68 +1,123 @@
 import React, { Component } from 'react';
-
-import {
-  NavLink, Redirect
-} from 'react-router-dom';
-
+import NotFound from './NotFound'
+import Photo from './Photo';
+import Header from './Header';
+import apiKey from '../config.js';
+import Axios from 'axios';
 
 class Home extends Component {
-    
-  //basic stateful component, so we know if the user entered in something from the search box
-  state = {
+   
+    //State object for keeping track of the search state
+    state = {
+      //are we searching?
+      bSearching: false,
+      //the search string
       searchString: "",
-      bIsSearching: false
-  }
-
-  //handle the form submit and and update the state that we are starting a search
-  handleSubmit = (e) => {    
-      e.preventDefault();
-      
-      let newState = {
-        searchString: this.searchValue.value,
-        bIsSearching: true
-      }
-      this.setState(newState);
-      
-  }
-
-    
-  render() {
-    //if we are starting a search, clear the state, and redirect to the search component, to perform the search and display the resutls.
-    if(this.state.bIsSearching) {
-        let search = this.state.searchString;
-
-        let newState = {
-          searchString: '',
-          bIsSearching: false
-        }
-        this.setState(newState);
-        
-        return (<Redirect to={`/Search/${search}`} />)
+      //the search results array, which is built of an array of urls to pull images from flickr
+      searchResults: [],
+      //when the search completes, was it successful?
+      searchSuccessful: false,
+      //is the searchc completed? used in render loop for modifying what dom shows
+      bSearchCompleted: false
     }
 
-    return (
-      <div className="App">
-        <div className="container">        
-          <form className="search-form" onSubmit={this.handleSubmit}>
-            <input type="search" placeholder="Search" ref={ (input) => this.searchValue = input } />
-            <button type="submit" className="button">
-              <svg fill="#fff" height="24" viewBox="0 0 23 23" width="24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                <path d="M0 0h24v24H0z" fill="none"/>
-              </svg>
-            </button>
-          </form>
-        </div>
-        <nav className="main-nav">
-        <ul>
-          <li><NavLink to='/Search/Cats'>Cats</NavLink></li>
-          <li><NavLink to='/Search/Dogs'>Dogs</NavLink></li>
-          <li><NavLink to='/Search/Places'>Places</NavLink></li>
-        </ul>
-        </nav>
-      </div>
-    );
-  }
+    //ASYNC AWAIT promise function that calls AXIOS and gathers data based on the search string
+    async SearchFor(searchString) {
+        let results = [];
+
+        //create the url for axios to call
+        const url = `https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=${apiKey}&tags=${searchString}&per_page=24&format=json&nojsoncallback=1`;
+
+        //wait for axios to complete
+        await Axios.get(url).then(responseData => {
+              //keep track of the index for inserting url results into the results array by index
+              let index = 0;
+
+              //for each loop on the array of photos returned from axios, build the array of urls so we can display the images
+              responseData.data.photos.photo.forEach(element => {
+                  results[index] = `https://live.staticflickr.com/${element.server}/${element.id}_${element.secret}.jpg`;
+                  index++;
+            });
+          }).catch(error => {
+            console.log('Error fetching and parsing data', error);
+          });
+
+        return results;
+    }
+
+    //The main search function that starts the async await process and sets the new state for the component
+    beginSearchFor = async (searchString) => {
+        //create a new state
+        let newState = {
+          bSearching: true,
+          searchString: searchString,
+          searchResults: [],
+          searchSuccessful: false,
+          bSearchCompleted: false
+        };
+
+        //wait for the results
+        let results = await this.SearchFor(searchString);
+        
+        //finish updating the state with the result
+        newState.searchSuccessful = (results !== null && results.length > 0) ;
+        newState.searchResults = results;
+        newState.bSearchCompleted = true;
+
+        //when we pass then into the libary, it will update the state, so in the render loop we can react to the change
+        this.setState( newState );
+    }
+
+    componentDidMount() {
+      if(typeof this.props.match.params.topic !== 'undefined') {
+        const searchString = this.props.match.params.topic;
+        if(searchString !== this.state.searchString) {
+          this.beginSearchFor(searchString);
+        }
+      }
+      
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+      if(typeof this.props.match.params.topic !== 'undefined') {
+        const searchString = this.props.match.params.topic;
+        if(searchString !== this.state.searchString) {
+          this.beginSearchFor(searchString);
+        }
+      }
+    }
+      
+    render() {
+        //if we are searching, display results and update the user, but only after the search is completed
+        if(this.state.bSearching) {
+            if(this.state.bSearchCompleted) {
+                return (
+                    <div className="App">
+                        <Header />
+                        {                    
+                            (this.state.searchSuccessful)
+                            ?
+                              <Photo searchedFor = {this.state.searchString} searchResults = {this.state.searchResults} />
+                            :
+                              <NotFound />
+                        }
+                    </div>
+                );
+            } else {
+                return (
+                    <div className="App">                
+                      <h2>SEARCHING</h2>
+                    </div>
+                );
+            }
+      } else {
+          return (
+              <div className="App">
+                <Header />
+              </div>
+          );
+      }
+    }
 }
 
 export default Home;
